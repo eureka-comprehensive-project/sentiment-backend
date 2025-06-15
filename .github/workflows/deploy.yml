@@ -1,48 +1,57 @@
-# name: Deploy To EC2
-# on:
-#   push:
-#     branches:
-#       - main
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Github Repository 파일 불러오기
-#         uses: actions/checkout@v4
+name: Deploy FastAPI to EC2
 
-#       - name: JDK 17버전 설치
-#         uses: actions/setup-java@v4
-#         with:
-#           distribution: temurin
-#           java-version: 17
+on:
+  push:
+    branches:
+      - main
 
-#       - name: 테스트 및 빌드하기
-#         run: ./gradlew clean build
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-#       - name: 빌드된 파일 이름 변경하기
-#         run: mv ./build/libs/*SNAPSHOT.jar ./project.jar
+    steps:
+      - name: ✅ 소스코드 체크아웃
+        uses: actions/checkout@v4
 
-#       - name: SCP로 EC2에 빌드된 파일 전송하기
-#         uses: appleboy/scp-action@v0.1.7
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ${{ secrets.EC2_USERNAME }}
-#           key: ${{ secrets.EC2_PRIVATE_KEY }}
-#           source: project.jar
-#           target: /home/ubuntu/chatbot-app/tobe
+      - name: ✅ EC2에 SSH로 배포
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            # 1. Dockerfile이 위치할 디렉토리로 이동 or 생성
+            mkdir -p ~/fastapi-app
+            cd ~/fastapi-app
 
-#       - name: SSH로 EC2에 접속하기
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.EC2_HOST }}
-#           username: ${{ secrets.EC2_USERNAME }}
-#           key: ${{ secrets.EC2_PRIVATE_KEY }}
-#           script_stop: true
-#           script: |
-#             rm -rf /home/ubuntu/chatbot-app/current
-#             mkdir /home/ubuntu/chatbot-app/current
-#             mv /home/ubuntu/chatbot-app/tobe/project.jar /home/ubuntu/chatbot-app/current/project.jar
-#             cd /home/ubuntu/chatbot-app/current
-#             sudo fuser -k -n tcp 8082 || true
-#             nohup java -jar project.jar > ./output.log 2>&1 &
-#             rm -rf /home/ubuntu/chatbot-app/tobe
+            # 2. 기존 파일 제거 및 새로 복사
+            rm -rf *
+            echo "📦 Copying project files..."
+            exit
+
+      - name: ✅ EC2에 소스 업로드
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "."
+          target: "~/fastapi-app"
+
+      - name: ✅ EC2에서 도커 빌드 및 실행
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd ~/fastapi-app
+
+            echo "🛠️ Docker 빌드 중..."
+            docker stop fastapi-container || true
+            docker rm fastapi-container || true
+
+            docker build -t fastapi-app .
+
+            echo "🚀 Docker 실행 중..."
+            docker run -d --name fastapi-container -p 8088:8088 fastapi-app
