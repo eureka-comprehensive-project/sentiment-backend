@@ -12,9 +12,12 @@ jobs:
       - name: ✅ Checkout
         uses: actions/checkout@v4
 
+      - name: 📁 디버깅 - 현재 디렉토리 목록 확인
+        run: ls -al
+
       - name: ✅ Docker 이미지 빌드
         run: |
-          docker build -t fastapi-app .
+          docker build -t fastapi-app -f Dockerfile .  # 🔥 context를 명확히 지정
           docker save fastapi-app > fastapi-app.tar
 
       - name: ✅ 이미지 EC2로 전송
