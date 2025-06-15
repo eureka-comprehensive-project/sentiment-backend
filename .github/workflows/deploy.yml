@@ -14,7 +14,7 @@ jobs:
 
       - name: ✅ Docker 이미지 빌드
         run: |
-          docker build -t fastapi-app -f fastapi-app/Dockerfile fastapi-app
+          docker build -t fastapi-app .
           docker save fastapi-app > fastapi-app.tar
 
       - name: ✅ 이미지 EC2로 전송
