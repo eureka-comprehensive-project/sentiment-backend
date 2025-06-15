@@ -18,7 +18,7 @@ jobs:
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_KEY }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
             # 1. Dockerfile이 위치할 디렉토리로 이동 or 생성
             mkdir -p ~/fastapi-app
