@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import torch
 from transformers import BertForSequenceClassification, AutoTokenizer
+from huggingface_hub import snapshot_download
+
 
 # FastAPI 앱 생성
 app = FastAPI()
@@ -20,9 +22,12 @@ id2label = {
 
 # 디바이스 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+local_dir = snapshot_download(
+    repo_id="jmk445/sentiment-classifier",
+    repo_type="model"  # 생략해도 기본은 'model'    
+)
 # 모델 및 토크나이저 로드
-model_path = "./results"
+model_path = local_dir
 model = BertForSequenceClassification.from_pretrained(model_path)
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 model.to(device)
