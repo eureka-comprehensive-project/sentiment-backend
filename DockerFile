@@ -13,7 +13,7 @@ RUN pip3 install torch --index-url https://download.pytorch.org/whl/cu118
 COPY ./app ./app
 
 # FastAPI 실행 포트 설정
-EXPOSE 8000
+EXPOSE 8088
 
 # 컨테이너 시작 시 uvicorn으로 FastAPI 실행
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8088"]
