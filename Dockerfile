@@ -5,7 +5,7 @@ WORKDIR /sentiment
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .  # ✅ 현재 폴더 전체 복사 (app 대신)
+COPY . .  
 
 EXPOSE 8088
 
