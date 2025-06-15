@@ -1,57 +1,40 @@
-name: Deploy FastAPI to EC2
+name: Deploy FastAPI via Docker Image
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ✅ 소스코드 체크아웃
+      - name: ✅ Checkout
         uses: actions/checkout@v4
 
-      - name: ✅ EC2에 SSH로 배포
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script: |
-            # 1. Dockerfile이 위치할 디렉토리로 이동 or 생성
-            mkdir -p ~/fastapi-app
-            cd ~/fastapi-app
+      - name: ✅ Docker 이미지 빌드
+        run: |
+          docker build -t fastapi-app .
+          docker save fastapi-app > fastapi-app.tar
 
-            # 2. 기존 파일 제거 및 새로 복사
-            rm -rf *
-            echo "📦 Copying project files..."
-            exit
-
-      - name: ✅ EC2에 소스 업로드
+      - name: ✅ 이미지 EC2로 전송
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "."
-          target: "~/fastapi-app"
+          source: "fastapi-app.tar"
+          target: "~/fastapi-deploy"
 
-      - name: ✅ EC2에서 도커 빌드 및 실행
+      - name: ✅ EC2에서 컨테이너 실행
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
-            cd ~/fastapi-app
-
-            echo "🛠️ Docker 빌드 중..."
+            cd ~/fastapi-deploy
             docker stop fastapi-container || true
             docker rm fastapi-container || true
-
-            docker build -t fastapi-app .
-
-            echo "🚀 Docker 실행 중..."
+            docker load < fastapi-app.tar
             docker run -d --name fastapi-container -p 8088:8088 fastapi-app
